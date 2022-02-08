@@ -88,7 +88,7 @@ def relu(x):
     Returns:
         float : relu value
     """
-    return x if x > 0 else 0
+    return x if x > 0 else 0.0
 
 
 EPS = 1e-6
