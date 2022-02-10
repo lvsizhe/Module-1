@@ -190,8 +190,19 @@ class History:
         Returns:
             list of numbers : a derivative with respect to `inputs`
         """
-        # TODO: Implement for Task 1.4.
-        raise NotImplementedError('Need to implement for Task 1.4')
+        items = self.last_fn.chain_rule(ctx, inputs, d_output)
+        result = []
+        curr = 0
+        for input_var in inputs:
+            if is_constant(input_var):
+                result.append(0.0)
+            var, number = items[curr]
+            assert var == input_var
+            result.append(number)
+            curr += 1
+        assert len(result) == len(inputs)
+
+        return result
 
 
 class FunctionBase:
@@ -273,7 +284,6 @@ class FunctionBase:
         """
         # Tip: Note when implementing this function that
         # cls.backward may return either a value or a tuple.
-        # TODO: Implement for Task 1.3.
         numbers = cls.backward(ctx, d_output)
         assert len(numbers) == len(inputs)
 
