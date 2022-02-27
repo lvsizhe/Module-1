@@ -190,17 +190,18 @@ class History:
         Returns:
             list of numbers : a derivative with respect to `inputs`
         """
-        items = self.last_fn.chain_rule(ctx, inputs, d_output)
+        items = self.last_fn.chain_rule(self.ctx, self.inputs, d_output)
         result = []
         curr = 0
-        for input_var in inputs:
+        for input_var in self.inputs:
             if is_constant(input_var):
                 result.append(0.0)
+                continue
             var, number = items[curr]
             assert var == input_var
             result.append(number)
             curr += 1
-        assert len(result) == len(inputs)
+        assert len(result) == len(self.inputs)
 
         return result
 
@@ -313,8 +314,31 @@ def topological_sort(variable):
         list of Variables : Non-constant Variables in topological order
                             starting from the right.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError('Need to implement for Task 1.4')
+
+    # DFS version: https://en.wikipedia.org/wiki/Topological_sorting
+    permanent_marks = set()
+
+    result = []
+
+    def visit(v):
+        if is_constant(v):
+            return
+
+        if v.unique_id in permanent_marks:
+            return
+
+        if v.history.inputs is not None:
+            for input in v.history.inputs:
+                visit(input)
+
+        permanent_marks.add(v.unique_id)
+
+        result.append(v)
+
+    visit(variable)
+    result.reverse()
+
+    return result
 
 
 def backpropagate(variable, deriv):
@@ -330,5 +354,23 @@ def backpropagate(variable, deriv):
 
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError('Need to implement for Task 1.4')
+    vars = topological_sort(variable)
+
+    curr_derivs = {}    # {var.unique_id -> derivative}
+    sorted = []
+    for var in vars:
+        curr_derivs[var.unique_id] = 0.0
+        sorted.append(str(var))
+    
+    curr_derivs[variable.unique_id] = deriv
+
+    for var in vars:
+        d_out = curr_derivs[var.unique_id]
+        if var.is_leaf():
+            var.accumulate_derivative(d_out)
+        else:
+            new_derivs = var.history.backprop_step(d_out)
+            for i, input in enumerate(var.history.inputs):
+                if is_constant(input):
+                    continue
+                curr_derivs[input.unique_id] += new_derivs[i]
